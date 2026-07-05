@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스마트시티 가상 지도 탄소저감 시뮬레이터</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: #ecf0f1;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .app-container {
+            background: white;
+            max-width: 900px;
+            width: 100%;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 24px;
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 13px;
+            margin-bottom: 25px;
+        }
+        .main-layout {
+            display: flex;
+            gap: 25px;
+            flex-wrap: wrap;
+        }
+        /* 왼쪽: 지도 영역 */
+        .map-section {
+            flex: 1.2;
+            min-width: 350px;
+        }
+        .map-box {
+            position: relative;
+            width: 100%;
+            height: 380px;
+            background: linear-gradient(135deg, #e0f7fa 25%, #e8f5e9 100%);
+            border: 3px solid #bdc3c7;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+        }
+        /* 지도 가상 도로 및 구역 장식 */
+        .road-v { position: absolute; left: 45%; width: 40px; height: 100%; background: #d5dbdb; }
+        .road-h { position: absolute; top: 50%; width: 100%; height: 40px; background: #d5dbdb; }
+        .map-label { position: absolute; font-size: 11px; color: #95a5a6; font-weight: bold; }
+        
+        /* 선택 가능한 가상 버튼(핀) 스타일 */
+        .map-pin {
+            position: absolute;
+            cursor: pointer;
+            padding: 12px;
+            background: white;
+            border: 3px solid #34495e;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 13px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .map-pin:hover {
+            transform: translateY(-5px) scale(1.05);
+            background: #2cc71;
+            color: white;
+            border-color: #27ae60;
+        }
+        .map-pin.active {
+            background: #2ecc71;
+            color: white;
+            border-color: #27ae60;
+            box-shadow: 0 0 15px #2ecc71;
+        }
+        /* 핀 위치 지정 */
+        #pin1 { top: 15%; left: 10%; border-color: #2980b9; }
+        #pin2 { top: 20%; right: 10%; border-color: #e67e22; }
+        #pin3 { bottom: 15%; left: 25%; border-color: #9b59b6; }
+
+        /* 오른쪽: 대시보드 및 결과 영역 */
+        .control-section {
+            flex: 1;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .input-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            color: #34495e;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #bdc3c7;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        .instruction {
+            background: #e8f4f8;
+            color: #2980b9;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .result-box {
+            padding: 20px;
+            border-radius: 10px;
+            background-color: #fff;
+            border: 2px solid #e0e0e0;
+            display: none;
+        }
+        .result-box.show { display: block; }
+        .result-title { font-weight: bold; font-size: 16px; color: #2c3e50; margin-bottom: 12px; border-bottom: 2px solid #f1f1f1; padding-bottom: 5px;}
+        .data-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+        .data-row.highlight {
+            font-size: 17px;
+            font-weight: bold;
+            color: #27ae60;
+            border-top: 1px dashed #bdc3c7;
+            padding-top: 8px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <h1>🌱 스마트시티 가상 지도 탄소저감 시뮬레이터</h1>
+    <div class="subtitle">국내 국책연구기관 전과정 평가(LCA) 데이터 기반</div>
+
+    <div class="main-layout">
+        <div class="map-section">
+            <label>📍 지도의 인프라를 클릭하여 재사용 패널을 배치하세요</label>
+            <div class="map-box">
+                <div class="road-v"></div>
+                <div class="road-h"></div>
+                <div class="map-label" style="top:5%; left:5%;">주거단지 공원</div>
+                <div class="map-label" style="top:5%; right:5%;">도심 상업 지구</div>
+                <div class="map-label" style="bottom:5%; left:5%;">대형 아파트 단지</div>
+
+                <div class="map-pin" id="pin1" onclick="selectSystem(1)">💡 스마트 가로등 구역</div>
+                <div class="map-pin" id="pin2" onclick="selectSystem(2)">🚗 EV 충전소 그늘막</div>
+                <div class="map-pin" id="pin3" onclick="selectSystem(3)">🏢 아파트 가상발전소(VPP)</div>
+            </div>
+        </div>
+
+        <div class="control-section">
+            <div class="input-box">
+                <label for="weight">📊 시뮬레이션할 패널의 무게 (단위: 톤)</label>
+                <input type="number" id="weight" value="87000" min="1" oninput="calculateLive()">
+            </div>
+
+            <div class="instruction" id="guideText">
+                지도의 버튼 중 하나를 클릭하면 탄소 시뮬레이션이 시작됩니다!
+            </div>
+
+            <div class="result-box" id="resultBox">
+                <div class="result-title">📊 실시간 탄소 감축 결과</div>
+                <div class="data-row">
+                    <span>선택된 연계 시스템:</span>
+                    <span id="resSystem" style="font-weight:bold; color:#2980b9;">-</span>
+                </div>
+                <div class="data-row">
+                    <span>🔴 그냥 폐기 후 새 패널 생산 시:</span>
+                    <span id="resA">0 kg</span>
+                </div>
+                <div class="data-row">
+                    <span>🟢 스마트 그리드 재사용 시:</span>
+                    <span id="resB">0 kg</span>
+                </div>
+                <div class="data-row highlight">
+                    <span>✨ 최종 탄소 감축량:</span>
+                    <span id="resReduction">0 kg</span>
+                </div>
+                <div class="data-row" style="font-weight: bold; color: #34495e;">
+                    <span>🌿 탄소 발자국 절감률:</span>
+                    <span id="resPercent">0%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentSelectedSystem = null;
+
+    function selectSystem(systemId) {
+        // 모든 핀의 활성화 클래스 제거 후 선택한 핀만 활성화
+        document.querySelectorAll('.map-pin').forEach(pin => pin.classList.remove('active'));
+        document.getElementById('pin' + systemId).classList.add('active');
+        
+        currentSelectedSystem = systemId;
+        calculateLive();
+    }
+
+    function calculateLive() {
+        if (currentSelectedSystem === null) return;
+
+        const weight = parseFloat(document.getElementById('weight').value);
+        if (isNaN(weight) || weight <= 0) {
+            document.getElementById('resultBox').classList.remove('show');
+            document.getElementById('guideText').style.display = 'block';
+            document.getElementById('guideText').innerText = '올바른 패널 무게를 입력해주세요!';
+            return;
+        }
+
+        // 안내문 숨기고 결과창 켜기
+        document.getElementById('guideText').style.display = 'none';
+        document.getElementById('resultBox').classList.add('show');
+
+        let systemName = "";
+        let synergyBonus = 0.05;
+
+        if (currentSelectedSystem === 1) {
+            systemName = "독립형 스마트 가로등";
+            synergyBonus = 0.05;
+        } else if (currentSelectedSystem === 2) {
+            systemName = "전기차(EV) 충전소 보조 전원";
+            synergyBonus = 0.08;
+        } else if (currentSelectedSystem === 3) {
+            systemName = "가상발전소(VPP) 미니 태양광";
+            synergyBonus = 0.10;
+        }
+
+        // 데이터 연산
+        const CO2_NEW_MANUFACTURING = 1500;
+        const CO2_DISPOSAL = 375;
+        const CO2_REUSE_PROCESS = 75;
+
+        const co2ScenarioA = (CO2_DISPOSAL + CO2_NEW_MANUFACTURING) * weight;
+        const co2ScenarioB = (CO2_REUSE_PROCESS * weight) * (1 - synergyBonus);
+        const totalReduction = co2ScenarioA - co2ScenarioB;
+        const reductionPercent = (totalReduction / co2ScenarioA) * 100;
+
+        // UI 업데이트
+        document.getElementById('resSystem').innerText = systemName;
+        document.getElementById('resA').innerText = co2ScenarioA.toLocaleString(undefined, {maximumFractionDigits: 0}) + ' kg';
+        document.getElementById('resB').innerText = co2ScenarioB.toLocaleString(undefined, {maximumFractionDigits: 0}) + ' kg';
+        document.getElementById('resReduction').innerText = totalReduction.toLocaleString(undefined, {maximumFractionDigits: 0}) + ' kg CO₂-eq';
+        document.getElementById('resPercent').innerText = reductionPercent.toFixed(1) + '%';
+    }
+</script>
+
+</body>
+</html>
